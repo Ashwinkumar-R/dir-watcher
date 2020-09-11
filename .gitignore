@@ -1,0 +1,11 @@
+# Remove some patch or backup files from SCM
+
+# VS Code 
+.vscode/
+
+# NodeJS
+node_modules
+
+#log files
+*.log
+logs
