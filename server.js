@@ -25,6 +25,7 @@ class dirWatcher {
         this.appReady = false; // check application is initialized, (db connection should be ready)
 
         this.child = null; //child process to collect directory statistics (works based on IPC)
+        this.child_ready = false; //When child successfully completes initial scan on startup, it is ready
         this.plannedStop = false; //If child process was stopped via manual request
         this.enums = config.ipc_messages; //IPC event messages
 
@@ -83,12 +84,15 @@ class dirWatcher {
             this.child.on('message', async (msg) => {
                 that.logger.debug(`Received message from child. Type: ${msg.type}`);
                 switch (msg.type) {
-                    case that.enums.child.RESULTS_READY :
+                    case that.enums.child.RESULTS_READY : //scan result are ready
                         if (msg.results) {
                             await that.putResultsToDB(msg.results);
                         } else {
                             that.logger.debug('Received empty results from child');
                         }
+                        break;
+                    case that.enums.child.CHILD_READY : // child is ready to accept change request
+                        that.child_ready = true;
                         break;
                 }
             })
@@ -154,33 +158,37 @@ class dirWatcher {
     sendCommandToChild(type,value) {
         let that = this;
         
-        if (this.child) {
-            switch (type) {
-                case this.enums.parent.CHANGE_POLL_INTERVAL :
-                    this.pollTime = value;
-                    this.child.send({type:this.enums.parent.CHANGE_POLL_INTERVAL, data:value});
-                    break;
-                case this.enums.parent.CHANGE_MAGIC_WORD :
-                    this.magicWord = value;
-                    this.child.send({type:this.enums.parent.CHANGE_MAGIC_WORD, data:value});
-                    break;
-                case this.enums.parent.CHANGE_DIR_SETTINGS :
-                    if (value.path) {
-                        if(fs.existsSync(value.path)) { // check path to monitor exist
-                            this.directory = value;
-                            this.child.send({type:this.enums.parent.CHANGE_DIR_SETTINGS, data:value});
-                        } else {
-                            let msg = `Invalid path ${value.path} given to monitor`;
-                            return {status: 'error', msg: msg};
+        if (this.child) { // child running
+            if (this.child_ready) { //child did not clear initial startup stage
+                switch (type) {
+                    case this.enums.parent.CHANGE_POLL_INTERVAL :
+                        this.pollTime = value;
+                        this.child.send({type:this.enums.parent.CHANGE_POLL_INTERVAL, data:value});
+                        break;
+                    case this.enums.parent.CHANGE_MAGIC_WORD :
+                        this.magicWord = value;
+                        this.child.send({type:this.enums.parent.CHANGE_MAGIC_WORD, data:value});
+                        break;
+                    case this.enums.parent.CHANGE_DIR_SETTINGS :
+                        if (value.path) {
+                            if(fs.existsSync(value.path)) { // check path to monitor exist
+                                this.directory = value;
+                                this.child.send({type:this.enums.parent.CHANGE_DIR_SETTINGS, data:value});
+                            } else {
+                                let msg = `Invalid path ${value.path} given to monitor`;
+                                return {status: 'error', msg: msg};
+                            }
+                        } else { //Invalid option
+                            return {status: 'error', msg: 'Invalid option provided for Directory change'};
                         }
-                    } else { //Invalid option
-                        return {status: 'error', msg: 'Invalid option provided for Directory change'};
-                    }
-                    break;
+                        break;
+                }
+                return {status: 'ok'}    
+            } else {
+                return {status: 'error', msg: 'Child not ready to accept changes'};
             }
-            return {status: 'ok'}
         } else {
-            return {status: 'error', msg: 'child not active'};
+            return {status: 'error', msg: 'No active child'};
         }
     }
 
