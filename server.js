@@ -94,6 +94,9 @@ class dirWatcher {
                     case that.enums.child.CHILD_READY : // child is ready to accept change request
                         that.child_ready = true;
                         break;
+                    case that.enums.child.CHILD_NOT_READY : // child is not ready to accept change request
+                        that.child_ready = false;
+                        break;
                 }
             })
 

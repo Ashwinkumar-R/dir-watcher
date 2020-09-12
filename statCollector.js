@@ -1,9 +1,11 @@
 const fs = require('fs');
+const fsExtra = require('fs-extra');
 const path = require('path');
 
 const common = require('./lib/common');
 const config = require('./lib/config');
 const logger = require('./lib/logger.js')
+const folderWatcher = require('./lib/watcher.js')
 
 class statCollector {
     constructor() {
@@ -37,12 +39,14 @@ class statCollector {
         this.excludeFiles = config.EXCLUDE_FILES; //List of files to exclude
         this.allFiles = {}; //to store files in directory and their magic word count during initial scan
         this.completedFileReads = 0; // Total number of successfully readed files
-        this.magicTotal = 0; // Total number of magic words
+        this.totalMagicWord = 0; // Total number of magic words
         this.initialScanTimer = null; //Rescan timer in case of initial scan failure
-        this.
+        this.monitorTimer = null; //long running monitor timer
 
         this.child_ready = false; //child will be ready to accept change request from parent only if initial scan is completed
     
+        this.watcher = null; //object to watcher class
+
         //IPC event messages
         this.enums = config.ipc_messages;
 
@@ -87,20 +91,40 @@ class statCollector {
         })
     }
 
+    // If magic_word or directory is changed, we need to do initial scan to find results from beginning and update cache
+    async restartInitialScan() {
+        // clear the periodic monitor as we are going to scan new search query
+        if (this.monitorTimer) {
+            this.logger.debug('clearing up monitor timer');
+            clearInterval(that.monitorTimer);
+            this.monitorTimer = null;
+        }
+
+        // stop the watcher if already running
+        if (this.watcher) {
+            this.logger.debug('stopping old watcher');
+            await this.watcher.stop();
+        }
+
+        that.sendResultToParent(that.enums.child.CHILD_NOT_READY); //Notify parent that child is not ready
+
+        this.initialScan();
+    }
+
     // process all the incoming msg from parent and act accordingly
+    // If magic_word or directory is changed, we need to do initial scan to find results from beginning and update cache
     handleChanges(msg) {
         switch (msg.type) {
             case this.enums.parent.CHANGE_POLL_INTERVAL :
                 this.pollTimer = msg.data;
-                this.logger.debug(this.pollTimer);
                 break;
             case that.enums.parent.CHANGE_MAGIC_WORD :
                 this.magicWord = msg.data;
-                this.logger.debug(this.magicWord);
+                this.restartInitialScan();
                 break;
             case that.enums.parent.CHANGE_DIR_SETTINGS :
                 this.directory = msg.data;
-                this.logger.debug(this.directory);
+                this.restartInitialScan();
                 break;
         }
     }
@@ -149,7 +173,7 @@ class statCollector {
         });
     }
 
-    // Collect and send back list of files
+    // Collect and send back list of files in the directory
     async collectFiles(directory) {
         let that = this;
         return new Promise ((resolve,reject) => {
@@ -176,7 +200,7 @@ class statCollector {
     async searchWord(text,find) {
         return new Promise((resolve,reject) => {
             try {
-                let pattern = new RegExp("\\b" + find + "\\b", 'g')
+                let pattern = new RegExp("\\b" + find + "\\b", 'g') //word boundary to check exact match
                 let r = text.match(pattern)
                 resolve(r && r.length);
             } catch (err) {
@@ -185,34 +209,71 @@ class statCollector {
         })
     };
 
-    // Count the number of magic words in the files
-    async countMagicWords(files,magic_word) {
+    // For file change events, update local cache and re-calculate total magic words
+    async reUpdateCache(file, current_count, event, total) {
         let that = this;
-    
-        return new Promise(async (resolve,reject) => {
-            let totalMagicWord = 0;
-            let totalFileReads = 0; // Total number of files to read
+        return new Promise((resolve,reject) => {
             try {
-                files.forEach( function(file) {
-                    totalFileReads++;
-                    fs.readFile(file, 'utf-8', async function(err, text) {
-                        if (err) {
-                            reject(err);
-                        }
-                        else {
-                            let count = await that.searchWord(text,magic_word); // search for magic word
-
-                            that.allFiles[file] =  count ? count : 0;
-                            totalMagicWord = count ? totalMagicWord + count : totalMagicWord;
-                            if (that.isReadComplete(totalFileReads) == true) {
-                                resolve(totalMagicWord);	
-                            }	
-                        }
-                    });
-                })	
+                if (event == 'added') { //update total and add entry to cache
+                    that.allFiles[file] =  current_count ? current_count : 0;
+                    total = current_count ? (total + current_count) : total; 
+                } else if (event == 'changed') {
+                    let old_count = that.allFiles[file];
+                    if (current_count > old_count) { // c > o (incremented)
+                        let latest = (current_count - old_count) + old_count;
+                        total = total + (current_count - old_count);
+                        that.allFiles[file] = latest;
+                    } else { // c > o (decremented)
+                        let latest = old_count - (old_count - current_count);
+                        total = total - (old_count - current_count);
+                        that.allFiles[file] = latest;
+                    }
+                } else if (event == 'deleted') { //subtract and remove entry from cache
+                    let old_count = that.allFiles[file];
+                    total = old_count ? (total - old_count) : total;
+                    delete that.allFiles[file]; //delete entry
+                }
+                resolve(total);
             } catch (err) {
                 reject(err);
             }
+        })
+    }
+
+    // Count the number of magic words in the files
+    async countMagicWords(files,magic_word,event=null) {
+        let that = this;
+    
+        return new Promise(async (resolve,reject) => {
+            let totalMagic = that.totalMagicWord; // have a copy of total magic word
+            let totalFileReads = 0; // Total number of files to read
+
+            files.forEach( async function(file) {
+                try {
+                    if (!(that.excludeFiles.includes(path.extname(file).toLowerCase()) && stat["size"] < 1073741824)) { //exclude
+                        if (event && event == 'deleted') { // For delete, we don't need to read files, it will not exist
+                            totalFileReads++;
+                            totalMagic = await that.reUpdateCache(file, 0, event, totalMagic);
+                        } else {
+                            totalFileReads++;
+                            let text = await fsExtra.readFile(file);
+                            let count = await that.searchWord(text.toString(),magic_word); // search for magic word
+        
+                            if (!event) { //initial scan
+                                that.allFiles[file] =  count ? count : 0;
+                                totalMagic = count ? (totalMagic + count) : totalMagic; //update total 
+                            } else {
+                                totalMagic = await that.reUpdateCache(file, count, event, totalMagic);
+                            } 
+                        }
+                        if (that.isReadComplete(totalFileReads) == true) { //If all the files are processed, return
+                            resolve(totalMagic);
+                        }
+                    }
+                } catch (err) {
+                    reject(err);
+                }
+            })	
         })
     }
 
@@ -222,9 +283,14 @@ class statCollector {
         let that = this;
         let directory = this.directory; //dir to search
         let magic_word = this.magicWord; //magic word to search
-        let timer = this.pollTimer;
+        let timer = this.pollTimer; //use poll timer for rescan interval
         let failed = false; // flag to check the scan is failed
         let noFiles = false; //If no files in provided directory
+
+        that.child_ready = false;
+        that.completedFileReads=0; //reset
+        that.allFiles = {}; //reset
+        that.totalMagicWord = 0; //reset
 
         let start_time = new Date(); // start time of the run
 
@@ -241,30 +307,22 @@ class statCollector {
             if (files && files.length) {
                 that.logger.debug(`initialScan: Total of ${files.length} matching files in the directory ${directory}`)
                 try {
-                    that.magicTotal = await that.countMagicWords(files,magic_word);
-                    that.logger.debug(`initialScan: Magic word ${magic_word} count during intial scan : ${that.magicTotal}`);
+                    that.totalMagicWord = await that.countMagicWords(files,magic_word);
+                    that.logger.debug(`initialScan: Magic word ${magic_word} count during intial scan : ${that.totalMagicWord}`);
                     that.child_ready = true; // make child ready for future change request
                 } catch(err) {
                     that.logger.error(`initialScan: Error occured while counting magic word ${magic_word}, Error: ${err}`);
                     failed = true;
-                    that.child_ready = false;
-                    that.completedFileReads=0; //reset
-                    that.allFiles = {}; //reset
-                    that.magicTotal = 0; //reset
                     that.logger.debug(`initialScan: Retrying the scan after ${timer}ms'`)
                     that.initialScanTimer = setTimeout(that.initialScan.bind(that), timer); // Try rescan
                 }
             } else {
-                that.logger.debug(`initialScan: No files are found in directory ${directory}`)
+                that.logger.debug(`initialScan: No matching files are found in directory ${directory}`)
                 noFiles=true;
             }
         } catch (err) {
             that.logger.error(`initialScan: Error walking directory ${directory} , Error: ${err}`);
             failed = true;
-            that.child_ready = false;
-            that.completedFileReads=0; //reset
-            that.allFiles = {}; //reset
-            that.magicTotal = 0; //reset
             that.logger.debug(`initialScan: Retrying the scan after ${timer}ms'`)
             that.initialScanTimer = setTimeout(that.initialScan.bind(that), timer);  // Try rescan
         }
@@ -280,15 +338,93 @@ class statCollector {
             added : {added : failed ? {} : Object.keys(that.allFiles)},
             deleted : {deleted : {}},
             word : magic_word,
-            word_count : that.magicTotal,
+            word_count : that.totalMagicWord,
             status : failed ? 'failed' : 'success'
         }
 
         that.sendResultToParent(that.enums.child.RESULTS_READY,result); // send the result to parent
 
-        if (!failed) { // if success, send child status as ready to parent
-            that.sendResultToParent(that.enums.child.CHILD_READY)
+        if (!failed) { // if success, send child status as ready to parent and start periodic monitoring
+            that.sendResultToParent(that.enums.child.CHILD_READY);
+
+            that.monitorDirectory(); //start long running task
         }
+    }
+
+    //process file changes observed during the monitoring
+    async processFileChanges(files,magic_word,event) {
+        let that = this;
+        return new Promise(async (resolve,reject) => {
+            try {
+                that.totalMagicWord = await that.countMagicWords(files,magic_word,event);
+                that.logger.debug(`processFileChanges: Magic word ${magic_word} count during scan : ${that.totalMagicWord}`);
+                resolve('done');
+            } catch(err) {
+                that.logger.error(`processFileChanges: Error occured while counting magic word ${magic_word}, Error: ${err}`);
+                reject(err);
+            }
+        })
+    }
+
+    // To monitor the folder
+    async monitorDirectory() {
+        let that = this;
+
+        let failed = false; // flag to check the scan is failed
+        let magic_word = that.magicWord;
+        let added = null;
+        let changed = null;
+        let deleted = null;
+        let start_time = new Date();
+
+        //reset to pickup new timer, in case of changes
+        if (that.monitorTimer) {
+            clearInterval(that.monitorTimer);
+            that.monitorTimer = null;
+        }
+
+        try {
+            //Init the watcher to watch for changes
+            if (!that.watcher) {
+                that.watcher = new folderWatcher(that.directory, that.logger);
+                await that.watcher.start();
+            }
+
+            try {
+                added = that.watcher.get_added_files();
+                changed = that.watcher.get_changed_files();
+                deleted  = that.watcher.get_deleted_files();
+    
+                added && added.length ? await that.processFileChanges(added,magic_word,'added') : null;
+                changed && changed.length ? await that.processFileChanges(changed,magic_word,'changed') : null;
+                deleted && deleted.length ? await that.processFileChanges(deleted,magic_word,'deleted') : null;
+            } catch (err) {
+                that.logger.error(`monitorDirectory: Error processing File changes, ${err}`);
+                failed = true;
+            }
+        } catch (err) {
+            that.logger.error(`monitorDirectory: Error initializing watcher, ${err}`);
+            failed = true;
+        }
+        
+        let end_time = new Date();
+        let total_time = (Math.abs(end_time - start_time) / 1000) % 60 //secs
+
+        // Frame the result
+        let result = {
+            start : Math.floor(start_time / 1000), //epoch time
+            end : Math.floor(end_time / 1000),
+            total : total_time,
+            added : {added : added ? added : {}},
+            deleted : {deleted : deleted ? deleted : {}},
+            word : magic_word,
+            word_count : that.totalMagicWord,
+            status : failed ? 'failed' : 'success'
+        }
+        
+        that.sendResultToParent(that.enums.child.RESULTS_READY,result); // send the result to parent
+    
+        that.monitorTimer =  setInterval(that.monitorDirectory.bind(that), that.pollTimer);
     }
 }
 

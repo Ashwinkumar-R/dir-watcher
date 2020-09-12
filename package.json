@@ -11,8 +11,10 @@
   },
   "dependencies": {
     "body-parser": "^1.19.0",
+    "chokidar": "^3.4.2",
     "express": "^4.17.1",
     "fs": "0.0.1-security",
+    "fs-extra": "^9.0.1",
     "ip": "^1.1.5",
     "log4js": "^6.3.0",
     "path": "^0.12.7",
