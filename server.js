@@ -162,7 +162,7 @@ class dirWatcher {
         let that = this;
         
         if (this.child) { // child running
-            if (this.child_ready) { //child did not clear initial startup stage
+            if (this.child_ready && type != 3) { // child did not clear initial startup stage, but allow directory change
                 switch (type) {
                     case this.enums.parent.CHANGE_POLL_INTERVAL :
                         this.pollTime = value;
@@ -172,22 +172,23 @@ class dirWatcher {
                         this.magicWord = value;
                         this.child.send({type:this.enums.parent.CHANGE_MAGIC_WORD, data:value});
                         break;
-                    case this.enums.parent.CHANGE_DIR_SETTINGS :
-                        if (value.path) {
-                            if(fs.existsSync(value.path)) { // check path to monitor exist
-                                this.directory = value;
-                                this.child.send({type:this.enums.parent.CHANGE_DIR_SETTINGS, data:value});
-                            } else {
-                                let msg = `Invalid path ${value.path} given to monitor`;
-                                return {status: 'error', msg: msg};
-                            }
-                        } else { //Invalid option
-                            return {status: 'error', msg: 'Invalid option provided for Directory change'};
-                        }
-                        break;
                 }
-                return {status: 'ok'}    
-            } else {
+                return {status: 'ok'}
+            } else { // Allow changing directory, so that it may help in clearing intial scan
+                if(type === this.enums.parent.CHANGE_DIR_SETTINGS) {
+                    if (value) {
+                        if(fs.existsSync(value)) { // check path to monitor exist
+                            this.directory = value;
+                            this.child.send({type:this.enums.parent.CHANGE_DIR_SETTINGS, data:value});
+                            return {status: 'ok'}
+                        } else {
+                            let msg = `Invalid path ${value} given to monitor`;
+                            return {status: 'error', msg: msg};
+                        }
+                    } else { //Invalid option
+                        return {status: 'error', msg: 'Invalid option provided for Directory change'};
+                    }
+                }
                 return {status: 'error', msg: 'Child not ready to accept changes'};
             }
         } else {
@@ -234,12 +235,13 @@ class dirWatcher {
 
         try {
             await this.dbHandler.connect(this.dbParams);
-            this.logger.debug('Successfully connected to postgres db ' + this.dbParams.database);
+            this.logger.debug(`init_db: Successfully connected to postgres db ${this.dbParams.database}`);
+            await this.checkDBTableExist();
             this.appReady = true; //set the application to ready state
             if (!this.child) {
                 this.fork_child(); //start the child process, as db connection is ready
             } else {
-                this.logger.info('There is already a child process running. Ignore initing again...');
+                this.logger.info(`init_db: child_${this.child.pid} process running. Ignore initing again...`);
             }        
         } catch (err) {
             this.appReady = false;
@@ -247,6 +249,47 @@ class dirWatcher {
             this.logger.debug(`Init the Postgres reconnecting with ${this.dbParams.reconnect_timeout} ms delay...`);
             this.dbReconnectTimer = setTimeout(this.init_db.bind(this), this.dbParams.reconnect_timeout); // In case of connection error, retry connecting after 30 secs
         }
+    }
+
+    // Check if table exist, create if not exist
+    async checkDBTableExist() {
+        return new Promise(async (resolve,reject) => {
+            if (this.dbHandler.isConnected()) {
+                let query = "SELECT tablename FROM pg_catalog.pg_tables WHERE tablename='" + this.dbParams.table + "'";
+                let [err,rows] = await to (this.dbHandler.runQuery(query));
+            
+                if (err) {
+                    this.logger.debug('checkDBTableExist: database request failed: %s', err);
+                    reject(err);
+                } 
+                else {
+                    let ret = rows && rows.length == 1 && rows[0]['tablename'] === this.dbParams.table;
+                    if (ret) {
+                        this.logger.debug(`checkDBTableExist: ${this.dbParams.table} table exist`);
+                        resolve(ret);
+                    } else { //create table
+                        this.logger.debug(`checkDBTableExist: ${this.dbParams.table} table does not exist. creating...`);
+
+                        let query = "CREATE TABLE " + this.dbParams.table + "(start_time timestamp(3) with time zone,\
+                        end_time timestamp(3) with time zone,run_time_secs numeric,files_added jsonb,files_deleted jsonb,\
+                        magic_word varchar(255),magic_word_count integer,run_status varchar(20))";
+                        let [err,rows] = await to (this.dbHandler.runQuery(query));
+            
+                        if (err) {
+                            this.logger.debug(`checkDBTableExist: creating table failed: ${err}`);
+                            this.closeConnections()
+                        } 
+                        else { 
+                            this.logger.debug(`checkDBTableExist: successfully created table: ${this.dbParams.table}`);
+                            resolve();
+                        }
+                    }
+                }
+            } else {
+                const msg = 'DB connection is not ready to query results..';
+                reject(msg);
+            }
+        })
     }
 
     //get the task results from the DB
@@ -419,7 +462,7 @@ class dirWatcher {
 
             let dirConfig = args && args.directory ? args.directory : null;
 
-            if (dirConfig && Object.keys(dirConfig).length > 0) {
+            if (dirConfig) {
                 let output = that.sendCommandToChild(that.enums.parent.CHANGE_DIR_SETTINGS,dirConfig);
 
                 if (output.status == 'ok') {

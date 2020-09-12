@@ -74,7 +74,7 @@ class statCollector {
             that.logger.debug(`Received message from parent. Type: ${msg.type}`);
 
             if (msg.type in Object.keys(that.enums.parent)) {
-                that.handleChanges(msg);
+                that.handleIncomingChanges(msg);
             } else {
                 that.logger.debug(`Received invalid message from parent. Type: ${msg.type}`);
             }
@@ -96,7 +96,7 @@ class statCollector {
         // clear the periodic monitor as we are going to scan new search query
         if (this.monitorTimer) {
             this.logger.debug('clearing up monitor timer');
-            clearInterval(that.monitorTimer);
+            clearInterval(this.monitorTimer);
             this.monitorTimer = null;
         }
 
@@ -104,26 +104,30 @@ class statCollector {
         if (this.watcher) {
             this.logger.debug('stopping old watcher');
             await this.watcher.stop();
+            this.watcher = null;
         }
 
-        that.sendResultToParent(that.enums.child.CHILD_NOT_READY); //Notify parent that child is not ready
+        this.sendResultToParent(this.enums.child.CHILD_NOT_READY); //Notify parent that child is not ready
 
         this.initialScan();
     }
 
     // process all the incoming msg from parent and act accordingly
     // If magic_word or directory is changed, we need to do initial scan to find results from beginning and update cache
-    handleChanges(msg) {
+    handleIncomingChanges(msg) {
         switch (msg.type) {
             case this.enums.parent.CHANGE_POLL_INTERVAL :
                 this.pollTimer = msg.data;
+                this.logger.debug(`handleIncomingChanges: changing polling interval to ${this.pollTimer}ms, will reflect in next cycle`);
                 break;
-            case that.enums.parent.CHANGE_MAGIC_WORD :
+            case this.enums.parent.CHANGE_MAGIC_WORD :
                 this.magicWord = msg.data;
+                this.logger.debug(`handleIncomingChanges: changing magic word to '${this.magicWord}'`);
                 this.restartInitialScan();
                 break;
-            case that.enums.parent.CHANGE_DIR_SETTINGS :
+            case this.enums.parent.CHANGE_DIR_SETTINGS :
                 this.directory = msg.data;
+                this.logger.debug(`handleIncomingChanges: changing directory to scan to '${this.directory}'`);
                 this.restartInitialScan();
                 break;
         }
@@ -424,6 +428,10 @@ class statCollector {
         
         that.sendResultToParent(that.enums.child.RESULTS_READY,result); // send the result to parent
     
+        if (failed) { // if failed, do full scanning again to get the latest updates and clear intermediate results
+            that.restartInitialScan();
+        }
+
         that.monitorTimer =  setInterval(that.monitorDirectory.bind(that), that.pollTimer);
     }
 }
