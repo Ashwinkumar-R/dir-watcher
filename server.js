@@ -95,13 +95,13 @@ class dirWatcher {
 
             //handle messages to/from parent
             this.child.on('message', async (msg) => {
-                that.logger.debug(`Received message from child. Type: ${msg.type}`);
+                that.logger.debug(`fork_child: Received message from child. Type: ${msg.type}`);
                 switch (msg.type) {
                     case that.enums.child.RESULTS_READY : //scan result are ready
                         if (msg.results) {
                             await that.putResultsToDB(msg.results);
                         } else {
-                            that.logger.debug('Received empty results from child');
+                            that.logger.debug('fork_child: Received empty results from child');
                         }
                         break;
                     case that.enums.child.CHILD_READY : // child is ready to accept change request
@@ -115,22 +115,23 @@ class dirWatcher {
 
             let child_pid = that.child.pid; //To avoid errors during final exit
 
-            that.logger.info(`Child_${child_pid} started`)
+            that.logger.info(`fork_child: Child_${child_pid} started`)
     
             this.child.on('exit', (code, signal) => {
-                that.logger.info(`Child_${child_pid} exited with code ${code}, signal ${signal}.`)
+                that.logger.info(`fork_child: Child_${child_pid} exited with code ${code}, signal ${signal}.`)
                 if (!that.plannedStop) { // child was exited accidentally, so restart
-                    that.logger.debug(`Child_${child_pid} was unexpectedly terminated. Restarting.`)
+                    that.logger.debug(`fork_child: Child_${child_pid} was unexpectedly terminated. Restarting.`)
                     that.fork_child();
                 }
             });
         } catch (err) {
-            that.logger.debug(`Exception in child process module : ${err}`)
+            that.logger.debug(`fork_child: Exception in child process module : ${err}`)
         }
     }
 
-    async killChild() {
+    async stopChild() {
         if (this.child) {
+            this.logger.debug(`stopChild: stopping child ${this.child.pid}`);
             this.child.kill('SIGTERM');
             this.child=null;
         }
@@ -147,7 +148,7 @@ class dirWatcher {
         if (action == 'start') {
             if (that.child) { // Ignore if child already alive
                 let msg = `child process already running with pid ${that.child.pid}. Ignore starting.`;
-                that.logger.debug(msg);
+                that.logger.debug(`executeTaskAction: ${msg}`);
                 return [1, msg];
             } else { // start child, if it is not alive
                 that.fork_child();
@@ -158,13 +159,13 @@ class dirWatcher {
             if (that.child) { //stop if child is running
                 let pid = that.child.pid;
                 that.plannedStop = true;
-                that.killChild();
+                that.stopChild();
                 that.child=null;
                 let msg = `stopped child process with pid ${pid}`
                 return [0, msg];
             } else { // Ignore if child not alive
                 let msg = `No active child process running. Ignore stop.`;
-                that.logger.debug(msg);
+                that.logger.debug(`executeTaskAction: ${msg}`);
                 return [1, msg];
             }
         }
@@ -215,7 +216,7 @@ class dirWatcher {
 
     // module to start the app
     async init_app() {
-        this.logger.info('Start initializing the main modules')
+        this.logger.info('init_app: Start initializing the main modules')
 
         //intialize db connection
         await this.init_db();
@@ -259,7 +260,7 @@ class dirWatcher {
         } catch (err) {
             this.appReady = false;
             this.logger.error(err);
-            this.logger.debug(`Init the Postgres reconnecting with ${this.dbParams.reconnect_timeout} ms delay...`);
+            this.logger.debug(`init_db: Init the Postgres reconnecting with ${this.dbParams.reconnect_timeout} ms delay...`);
             this.dbReconnectTimer = setTimeout(this.init_db.bind(this), this.dbParams.reconnect_timeout); // In case of connection error, retry connecting after 30 secs
         }
     }
@@ -318,8 +319,8 @@ class dirWatcher {
             let [err,rows] = await to (this.dbHandler.runQuery(query));
 
             if (err) { // Error while executing query
-                let msg = 'Error executing select query for processing result ' + err;
-                this.logger.debug(msg);
+                let msg = 'Error executing select query for processing result. Error: ' + err;
+                this.logger.debug(`getResultsFromDB: ${msg}`);
                 return {status:'error', error:msg};
             } else {
                 if (rows && rows.length >= 0) { // query executed, but no data matched the query
@@ -330,7 +331,7 @@ class dirWatcher {
             }
         } else {
             const msg = 'DB connection is not ready to query results..';
-            this.logger.debug(msg);
+            this.logger.debug(`getResultsFromDB: ${msg}`);
             return {status:'error', error:msg};
         }
     }
@@ -371,7 +372,7 @@ class dirWatcher {
 
         } else {
             const msg = 'DB connection is not ready to insert data..';
-            this.logger.debug(msg);
+            this.logger.debug(`putResultsToDB: ${msg}`);
             return 1;
         }
     }
@@ -506,10 +507,10 @@ class dirWatcher {
         app.set('port',appPort);
 
         app.listen(appPort, function() {
-            that.logger.info(`Application DirWatcher running on http://${ip.address()}:${appPort}`)
+            that.logger.info(`init_routes: Application DirWatcher running on http://${ip.address()}:${appPort}`)
         }).on('error', function(err) {
-            that.logger.error(`Error starting server. Err: ${err.message} Terminating process`);
-            process.exit(1);
+            that.logger.error(`init_routes: Error starting server. Err: ${err.message} Terminating process`);
+            that.closeConnections();
         });
     }
 
@@ -524,9 +525,9 @@ class dirWatcher {
             await this.dbHandler.close(); //close db connection
         }
 
-        this.killChild(); //stop the child process
+        this.stopChild(); //stop the child process
 
-        this.logger.debug('Exiting');
+        this.logger.debug('closeConnections: Exiting');
         await common.sleep(2000); //2secs grace period to complete writing final logs
         process.exit();
     }

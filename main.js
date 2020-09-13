@@ -10,6 +10,8 @@
 /*          -dbpass <DB password> -dbname <DB name> -dbtable <DB table> -poll <Polling timer>
 /*          -magic <Magic word> -dir <Folder to monitor> -port <Application port>
 /*
+/* NOTE: except -dbpass all other parameters are optional.
+/*
 /***********************************************************************************************/
 
 const common = require('./lib/common');
@@ -70,5 +72,5 @@ function main() {
 main();
 
 process.on('unhandledRejection', (err, p) => {
-    console.trace('unhandledRejection', err, p);
+    console.warn('main: unhandledRejection', err, p);
 });

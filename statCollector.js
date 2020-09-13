@@ -97,32 +97,46 @@ class statCollector {
             }
         })
 
-        process.on('SIGINT', function () {
+        process.on('SIGINT', async function () {
             that.logger.info(`SIGINT: Child_${process.pid} is shutting down gracefully.`);
+            await that.cleanup();
             process.exit();
         })
     
-        process.on('SIGTERM', function () {
+        process.on('SIGTERM', async function () {
             that.logger.info(`SIGTERM: Child_${process.pid} is shutting down gracefully.`);
+            await that.cleanup();
             process.exit();
         })
     }
 
-    // If magic_word or directory is changed, we need to do initial scan to find results from beginning and update cache
-    async restartInitialScan() {
-        // clear the periodic monitor as we are going to scan new search query
-        if (this.monitorTimer) {
-            this.logger.debug('clearing up monitor timer');
-            clearInterval(this.monitorTimer);
-            this.monitorTimer = null;
+    async cleanup() {
+        let that = this;
+        try {
+            // clear the periodic monitor as we are going to scan new search query
+            if (this.monitorTimer) {
+                this.logger.debug('cleanup: clearing up monitor timer');
+                clearInterval(this.monitorTimer);
+                this.monitorTimer = null;
+            }
+
+            // stop the watcher if already running
+            if (this.watcher) {
+                this.logger.debug('cleanup: stopping old watcher');
+                await this.watcher.stop();
+                this.watcher = null;
+            }
+        } catch(err) {
+            that.logger.error(`cleanup: Error cleaning up old handlers ${err}`);
+            return 1;
         }
 
-        // stop the watcher if already running
-        if (this.watcher) {
-            this.logger.debug('stopping old watcher');
-            await this.watcher.stop();
-            this.watcher = null;
-        }
+        return 0;
+    }
+
+    // If magic_word or directory is changed, we need to do initial scan to find results from beginning and update cache
+    async restartInitialScan() {
+        await that.cleanup();
 
         this.sendResultToParent(this.enums.child.CHILD_NOT_READY); //Notify parent that child is not ready
 
@@ -430,6 +444,12 @@ class statCollector {
             failed = true;
         }
         
+        if (added && added.length || changed && changed.length || deleted && deleted.length) {
+            that.logger.debug('monitorDirectory: Detected file changes');
+        } else {
+            that.logger.debug('monitorDirectory: No file changes detected');
+        }
+
         let end_time = new Date();
         let total_time = (Math.abs(end_time - start_time) / 1000) % 60 //secs
 

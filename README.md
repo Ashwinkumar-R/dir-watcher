@@ -69,3 +69,29 @@
     - node main.js <arguments>
 
 ```
+# create table(optional)
+
+```sh
+
+## If the table is not available it will be created during startup, else you can create and make it available
+
+
+# sample command
+CREATE TABLE watcher (
+	start_time timestamp(3) with time zone,
+    end_time timestamp(3) with time zone,
+    run_time_secs numeric,
+    files_added jsonb,
+    files_deleted jsonb,
+    magic_word varchar(255),
+    magic_word_count integer,
+    run_status varchar(20)
+);
+```
+# logging
+
+```sh
+
+2 log files will be created. One for parent and one for child. Optionally, log rotation can also be enabled.
+
+```
