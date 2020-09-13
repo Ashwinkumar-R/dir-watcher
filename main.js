@@ -21,6 +21,10 @@ const dirWatcher = require('./server');
 function main() {
     let options = config.options;
 
+    if(process.argv.length > 2) {
+        console.log(`Received command line arguments`)
+    }
+
     //parse the arguments
     for (var i=0; i < process.argv.length; i++) {
         var key = process.argv[i];
