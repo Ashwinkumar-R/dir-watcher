@@ -252,7 +252,7 @@ class statCollector {
                 } else if (event == 'deleted') { //subtract and remove entry from cache
                     let old_count = that.allFiles[file];
                     total = old_count ? (total - old_count) : total;
-                    delete that.allFiles[file]; //delete entry
+                    that.allFiles[file] ? delete that.allFiles[file] : null; //delete entry if exist
                 }
                 resolve(total);
             } catch (err) {
@@ -277,15 +277,17 @@ class statCollector {
                             totalMagic = await that.reUpdateCache(file, 0, event, totalMagic);
                         } else {
                             totalFileReads++;
-                            let text = await fsExtra.readFile(file);
-                            let count = await that.searchWord(text.toString(),magic_word); // search for magic word
-        
-                            if (!event) { //initial scan
-                                that.allFiles[file] =  count ? count : 0;
-                                totalMagic = count ? (totalMagic + count) : totalMagic; //update total 
-                            } else {
-                                totalMagic = await that.reUpdateCache(file, count, event, totalMagic);
-                            } 
+                            if (fs.existsSync(file)) { //read file only if it exists
+                                let text = await fsExtra.readFile(file);
+                                let count = await that.searchWord(text.toString(),magic_word); // search for magic word
+            
+                                if (!event) { //initial scan
+                                    that.allFiles[file] =  count ? count : 0;
+                                    totalMagic = count ? (totalMagic + count) : totalMagic; //update total 
+                                } else {
+                                    totalMagic = await that.reUpdateCache(file, count, event, totalMagic);
+                                }    
+                            }
                         }
                         if (that.isReadComplete(totalFileReads) == true) { //If all the files are processed, return
                             resolve(totalMagic);
