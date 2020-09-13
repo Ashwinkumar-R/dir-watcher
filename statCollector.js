@@ -346,10 +346,10 @@ class statCollector {
                 that.logger.debug(`initialScan: Total of ${files.length} matching files in the directory ${directory}`)
                 try {
                     that.totalMagicWord = await that.countMagicWords(files,magic_word);
-                    that.logger.debug(`initialScan: Magic word ${magic_word} count during intial scan : ${that.totalMagicWord}`);
+                    that.logger.debug(`initialScan: Magic word '${magic_word}' count during intial scan : ${that.totalMagicWord}`);
                     that.child_ready = true; // make child ready for future change request
                 } catch(err) {
-                    that.logger.error(`initialScan: Error occured while counting magic word ${magic_word}, Error: ${err}`);
+                    that.logger.error(`initialScan: Error occured while counting magic word '${magic_word}', Error: ${err}`);
                     failed = true;
                     that.logger.debug(`initialScan: Retrying the scan after ${timer}ms'`)
                     that.initialScanTimer = setTimeout(that.initialScan.bind(that), timer); // Try rescan
@@ -395,10 +395,10 @@ class statCollector {
         return new Promise(async (resolve,reject) => {
             try {
                 that.totalMagicWord = await that.countMagicWords(files,magic_word,event);
-                that.logger.debug(`processFileChanges: Magic word ${magic_word} count during scan : ${that.totalMagicWord}`);
+                that.logger.debug(`processFileChanges: Magic word '${magic_word}' count during scan : ${that.totalMagicWord}`);
                 resolve('done');
             } catch(err) {
-                that.logger.error(`processFileChanges: Error occured while counting magic word ${magic_word}, Error: ${err}`);
+                that.logger.error(`processFileChanges: Error occured while counting magic word '${magic_word}', Error: ${err}`);
                 reject(err);
             }
         })
@@ -446,7 +446,7 @@ class statCollector {
         }
         
         if (added && added.length || changed && changed.length || deleted && deleted.length) {
-            that.logger.debug('monitorDirectory: Detected file changes');
+            that.logger.debug(`monitorDirectory: Detected file changes. magic word '${magic_word}' total ${that.totalMagicWord}`);
         } else {
             that.logger.debug('monitorDirectory: No file changes detected');
         }
