@@ -136,6 +136,7 @@ class statCollector {
 
     // If magic_word or directory is changed, we need to do initial scan to find results from beginning and update cache
     async restartInitialScan() {
+        let that = this;
         await that.cleanup();
 
         this.sendResultToParent(this.enums.child.CHILD_NOT_READY); //Notify parent that child is not ready

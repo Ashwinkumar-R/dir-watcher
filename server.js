@@ -401,7 +401,7 @@ class dirWatcher {
         router.post('/results', asyncExpHandler(async function (req,res,next) {
             let args = req.body;
 
-            let limit = args && args.limit || 100; // last n records
+            let limit = args && parseInt(args.limit) || 100; // last n records
             let start = args && args.start || null; // query based on start time
 
             let output = await that.getResultsFromDB(limit, start);
@@ -409,7 +409,7 @@ class dirWatcher {
             if (output.status == 'ok') {
                 res.status(200).send({result:'ok', data:output.result});
             } else {
-                res.status(204).send({result:'error', msg:output.error});
+                res.status(404).send({result:'error', msg:output.error});
             }
         }))
 
@@ -441,7 +441,7 @@ class dirWatcher {
                     let msg = `Request to change polling interval to ${interval}ms sent to Background task`;
                     res.status(200).send({result:'ok', msg:msg});    
                 } else {
-                    res.status(400).send({result:'error', msg:output.msg});
+                    res.status(404).send({result:'error', msg:output.msg});
                 }
             } else {
                 let msg = `Invalid interval provided. Interval should be given in ms`;
@@ -462,7 +462,7 @@ class dirWatcher {
                     let msg = `Request to change magic word to ${word} sent to Background task`;
                     res.status(200).send({result:'ok', msg:msg});    
                 } else {
-                    res.status(400).send({result:'error', msg:output.msg});
+                    res.status(404).send({result:'error', msg:output.msg});
                 }
             } else {
                 let msg = `Invalid/empty magic word`;
@@ -483,7 +483,7 @@ class dirWatcher {
                     let msg = `Request to change directory configuration to ${JSON.stringify(dirConfig)} sent to Background task`;
                     res.status(200).send({result:'ok', msg:msg});
                 } else {
-                    res.status(400).send({result:'error', msg:output.msg});
+                    res.status(404).send({result:'error', msg:output.msg});
                 }
             } else {
                 let msg = `Invalid/empty directory changes requested`;
