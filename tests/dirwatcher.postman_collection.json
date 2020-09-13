@@ -1,0 +1,412 @@
+{
+	"info": {
+		"_postman_id": "f02c06fe-f0f6-4221-bc2b-6406a0911f21",
+		"name": "dirWatcher",
+		"description": "List of endpoints supported by DirWatcher Application.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "get results",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/results",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"results"
+					]
+				},
+				"description": "Get the 100 latest results from DB"
+			},
+			"response": []
+		},
+		{
+			"name": "get limited results",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"limit\": 10}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/results",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"results"
+					]
+				},
+				"description": "Get the limited number of results, whill fetch latest N results from db"
+			},
+			"response": []
+		},
+		{
+			"name": "get results on start time",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"start\":1599982224}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/results",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"results"
+					]
+				},
+				"description": "Get results based on start time(should be epoch format), if limit not specified will limit to 100"
+			},
+			"response": []
+		},
+		{
+			"name": "get results on start and limit",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"start\":1599982224, \"limit\": 10}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/results",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"results"
+					]
+				},
+				"description": "Get results based on start time(should be epoch format) and limited to N"
+			},
+			"response": []
+		},
+		{
+			"name": "child status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/dirWatcher/status",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"status"
+					]
+				},
+				"description": "Get child status as running/stopped"
+			},
+			"response": []
+		},
+		{
+			"name": "stop child",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"action\" : \"stop\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/task",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"task"
+					]
+				},
+				"description": "Stop the background task if running"
+			},
+			"response": []
+		},
+		{
+			"name": "child status after stop",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/dirWatcher/status",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"status"
+					]
+				},
+				"description": "Get child status as running/stopped"
+			},
+			"response": []
+		},
+		{
+			"name": "change polling interval fail",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"ms\":\"10000\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/interval",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"interval"
+					]
+				},
+				"description": "Change polling interval time will fail is child not running/ready"
+			},
+			"response": []
+		},
+		{
+			"name": "change magic word fail",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"word\":\"hello\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/magicword",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"magicword"
+					]
+				},
+				"description": "Change the magic word to be searched will fail if child not running/ready"
+			},
+			"response": []
+		},
+		{
+			"name": "start child",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"action\" : \"start\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/task",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"task"
+					]
+				},
+				"description": "Start the background task if running"
+			},
+			"response": []
+		},
+		{
+			"name": "child status after start",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8080/dirWatcher/status",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"status"
+					]
+				},
+				"description": "Get child status as running/stopped"
+			},
+			"response": []
+		},
+		{
+			"name": "change polling interval",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"ms\":\"10000\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/interval",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"interval"
+					]
+				},
+				"description": "Change polling interval time"
+			},
+			"response": []
+		},
+		{
+			"name": "change magic word",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"word\":\"hello\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/magicword",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"magicword"
+					]
+				},
+				"description": "Change the magic word to be searched"
+			},
+			"response": []
+		},
+		{
+			"name": "Change directory",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"directory\":\"C:\\\\ashwin\\\\nodejs\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/directory",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"directory"
+					]
+				},
+				"description": "Change the directory to be monitored"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "65a7a150-c922-4c90-9bf7-8ab7f161b719",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "518d2f1d-de38-4519-ab55-911dfde7348d",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"protocolProfileBehavior": {}
+}

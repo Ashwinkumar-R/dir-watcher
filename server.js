@@ -10,16 +10,16 @@
 /*
 /*****************************************************************************************************/
 
-const common = require('./lib/common');
-const config = require('./lib/config');
-const pgConnection = require('./lib/pg_helper');
-const logger = require('./lib/logger');
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const ip = require('ip');
 const { fork } = require('child_process');
 const fs = require('fs');
+
+const common = require('./lib/common');
+const config = require('./lib/config');
+const pgConnection = require('./lib/pg_helper');
+const logger = require('./lib/logger');
 
 const to = common.to; //wrapper to resolve "await" promise
 
