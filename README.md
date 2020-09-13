@@ -68,6 +68,10 @@
 
     - node main.js <arguments>
 
+    Usage: node main.js -level <Log level - default:debug> -dbhost <DB Host - default:localhost> -dbport <DB port - default:5432> -dbuser <DB user - default:postgres> -dbpass <DB password - default:''> -dbname <DB name - default:dir_watcher> -dbtable <DB table - default:watcher> -poll <Polling timer - default:300000> -magic <Magic word - default:hello> -dir <Folder to monitor - default:./> -port <Application port - default:8080>
+
+    NOTE: Except -dbpass all other parameters are optional.
+
 ```
 # create table(optional)
 
