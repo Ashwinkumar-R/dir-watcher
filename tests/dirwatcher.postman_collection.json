@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "f02c06fe-f0f6-4221-bc2b-6406a0911f21",
+		"_postman_id": "a7ff15ca-747d-4dbe-984e-d18df3546c40",
 		"name": "dirWatcher",
 		"description": "List of endpoints supported by DirWatcher Application.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -8,6 +8,20 @@
 	"item": [
 		{
 			"name": "get results",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "9558fd52-6b65-4bd9-9f49-200600abcce0",
+						"exec": [
+							"pm.test(\"get results\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -36,7 +50,64 @@
 			"response": []
 		},
 		{
+			"name": "get results fail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "16a86212-e1e4-463e-a2a3-613bac3134ac",
+						"exec": [
+							"pm.test(\"get results\", function () {\r",
+							"    pm.response.to.have.status(404);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/results",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"results"
+					]
+				},
+				"description": "get results fail when DB is not ready"
+			},
+			"response": []
+		},
+		{
 			"name": "get limited results",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "cb349242-dd5a-493e-91a8-5365aa4fa48d",
+						"exec": [
+							"pm.test(\"get limited results\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -66,6 +137,20 @@
 		},
 		{
 			"name": "get results on start time",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a6e7f1c4-8565-48bb-8a7e-770882e4e801",
+						"exec": [
+							"pm.test(\"get results on start time\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -95,6 +180,20 @@
 		},
 		{
 			"name": "get results on start and limit",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "b94e7313-1869-4d28-855a-a1941abe270b",
+						"exec": [
+							"pm.test(\"get results on start and limit\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -124,6 +223,20 @@
 		},
 		{
 			"name": "child status",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "6e71689c-5508-477e-b3db-51faf36f15a8",
+						"exec": [
+							"pm.test(\"child status\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -144,6 +257,20 @@
 		},
 		{
 			"name": "stop child",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "86eb706b-e287-4ac3-90ba-f9b90f599f13",
+						"exec": [
+							"pm.test(\"stop child\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -172,7 +299,64 @@
 			"response": []
 		},
 		{
+			"name": "invalid task action fail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a2ec5ba0-1a10-4084-84c3-4b3f595bf7a5",
+						"exec": [
+							"pm.test(\"stop child\", function () {\r",
+							"    pm.response.to.have.status(400);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"action\" : \"resume\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/task",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"task"
+					]
+				},
+				"description": "fails when any action other than stop/start"
+			},
+			"response": []
+		},
+		{
 			"name": "child status after stop",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "f8c71d64-fba0-437e-930b-24ec920b8183",
+						"exec": [
+							"pm.test(\"child status after stop\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -193,6 +377,20 @@
 		},
 		{
 			"name": "change polling interval fail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4eb4fcbe-184e-480d-874b-9cb7b368c6a1",
+						"exec": [
+							"pm.test(\"change polling interval fail\", function () {\r",
+							"    pm.response.to.have.status(404);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -222,6 +420,20 @@
 		},
 		{
 			"name": "change magic word fail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "aaea6c35-9c3d-4155-b1ec-b9fa6370e3bc",
+						"exec": [
+							"pm.test(\"change magic word fail\", function () {\r",
+							"    pm.response.to.have.status(404);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -251,6 +463,20 @@
 		},
 		{
 			"name": "start child",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "aa371b3c-6be2-4057-a0a8-532e213e933a",
+						"exec": [
+							"pm.test(\"start child\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -280,6 +506,20 @@
 		},
 		{
 			"name": "child status after start",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "9245fd05-2c2b-40b3-99a8-6fe1b9d193c9",
+						"exec": [
+							"pm.test(\"child status after start\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -300,6 +540,20 @@
 		},
 		{
 			"name": "change polling interval",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "30c3d384-9284-4ba5-95c3-7b939a5a2ced",
+						"exec": [
+							"pm.test(\"change polling interval\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -329,6 +583,20 @@
 		},
 		{
 			"name": "change magic word",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "e6faba7e-66bd-4f2a-af25-ad27a93195df",
+						"exec": [
+							"pm.test(\"change magic word\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -358,6 +626,20 @@
 		},
 		{
 			"name": "Change directory",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "11116197-7dd4-4747-a0a7-fb382aa339e9",
+						"exec": [
+							"pm.test(\"change directory\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -384,13 +666,142 @@
 				"description": "Change the directory to be monitored"
 			},
 			"response": []
+		},
+		{
+			"name": "invalid directory fail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "e8359594-0fb4-4629-ac75-3c912aff6706",
+						"exec": [
+							"pm.test(\"change directory\", function () {\r",
+							"    pm.response.to.have.status(404);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"directory\":\"C:\\\\as\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/directory",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"directory"
+					]
+				},
+				"description": "fails when the directory to be monitored is invalid"
+			},
+			"response": []
+		},
+		{
+			"name": "invalid magic word fail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "81fd4eec-e83c-43bd-ad08-7e2d717fb22b",
+						"exec": [
+							"pm.test(\"change magic word\", function () {\r",
+							"    pm.response.to.have.status(400);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"word\":\"\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/magicword",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"magicword"
+					]
+				},
+				"description": "fails when empty magic word to be searched"
+			},
+			"response": []
+		},
+		{
+			"name": "Invalid polling interval fail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "7db2b14b-7807-415c-9f11-5c34f016bcc1",
+						"exec": [
+							"pm.test(\"change polling interval\", function () {\r",
+							"    pm.response.to.have.status(400);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"ms\":\"xyz\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/dirWatcher/interval",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"dirWatcher",
+						"interval"
+					]
+				},
+				"description": "fail when polling interval is not in number"
+			},
+			"response": []
 		}
 	],
 	"event": [
 		{
 			"listen": "prerequest",
 			"script": {
-				"id": "65a7a150-c922-4c90-9bf7-8ab7f161b719",
+				"id": "512a051d-8098-4fc7-9b50-e5ea7a1cfe17",
 				"type": "text/javascript",
 				"exec": [
 					""
@@ -400,7 +811,7 @@
 		{
 			"listen": "test",
 			"script": {
-				"id": "518d2f1d-de38-4519-ab55-911dfde7348d",
+				"id": "a05e6e93-defd-4de0-bc67-def85e05f94a",
 				"type": "text/javascript",
 				"exec": [
 					""
