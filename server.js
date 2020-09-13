@@ -1,3 +1,15 @@
+/*****************************************************************************************************/
+/* file : server.js
+/* author : Ashwinkumar R
+/* 
+/* This file is responsible for the following functionality
+/*      - Creates and monitor DB connection and send/receive all requests/responses to/from DB module
+/*      - Creates Express server and required endpoints
+/*      - Fork the background task(child) and handles IPC
+/*      - Handles incoming change request via API and send them to child
+/*
+/*****************************************************************************************************/
+
 const common = require('./lib/common');
 const config = require('./lib/config');
 const pgConnection = require('./lib/pg_helper');
@@ -32,8 +44,9 @@ class dirWatcher {
         //init parent logger
         let logParams = {
             level : this.options.log.level,
+            maxLogSize : this.options.log.maxLogSize,
             name : config.APP_NAME,
-            logFile : LOG_FILE
+            logFile : LOG_FILE,
         }
 
         this.logger=new logger(logParams);
@@ -78,7 +91,7 @@ class dirWatcher {
         that.plannedStop = false; //we are ready to start the child , so reset flag
 
         try {
-            this.child = fork('statCollector.js', ['-level', that.options.log.level, '-timer', this.pollTime, '-word', this.magicWord, '-dir', this.directory]);
+            this.child = fork('statCollector.js', ['-level', that.options.log.level, '-size', that.options.log.maxLogSize, '-timer', this.pollTime, '-word', this.magicWord, '-dir', this.directory]);
 
             //handle messages to/from parent
             this.child.on('message', async (msg) => {
@@ -395,7 +408,7 @@ class dirWatcher {
             if (output.status == 'ok') {
                 res.status(200).send({result:'ok', data:output.result});
             } else {
-                res.status(201).send({result:'error', msg:output.error});
+                res.status(204).send({result:'error', msg:output.error});
             }
         }))
 
@@ -407,7 +420,7 @@ class dirWatcher {
 
             if (action == 'start' || action == 'stop') {
                 let [retcode,output] = await that.executeTaskAction(action);
-                res.status(201).send({result:retcode ? 'ignored' : 'ok', msg:output});
+                res.status(200).send({result:retcode ? 'ignored' : 'ok', msg:output});
             } else {
                 let msg = `Expected action start/stop. Received ${action}`;
                 res.status(400).send({result:'error', msg:msg});

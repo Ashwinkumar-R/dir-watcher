@@ -1,3 +1,17 @@
+/**********************************************************************************************/
+/* file : main.js
+/* author : Ashwinkumar R
+/* 
+/* This is the main entry point for the file to parse the command line arguments
+/* and update required configuration options.
+/* It starts the main server module.
+/*
+/* Usage: node main.js -level <Log level> -dbhost <DB Host> -dbport <DB port> -dbuser <DB user>
+/*          -dbpass <DB password> -dbname <DB name> -dbtable <DB table> -poll <Polling timer>
+/*          -magic <Magic word> -dir <Folder to monitor> -port <Application port>
+/*
+/***********************************************************************************************/
+
 const common = require('./lib/common');
 const config = require('./lib/config');
 const dirWatcher = require('./server');
@@ -42,6 +56,9 @@ function main() {
                 case '-dir':
                     options.monitor.directory = value;
                     break;
+                case '-port':
+                    options.app.appPort = value;
+                    break;
             }
         }
     }
@@ -51,3 +68,7 @@ function main() {
 }
 
 main();
+
+process.on('unhandledRejection', (err, p) => {
+    console.trace('unhandledRejection', err, p);
+});

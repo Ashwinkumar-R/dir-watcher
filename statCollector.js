@@ -1,3 +1,16 @@
+/*****************************************************************************************************/
+/* file : statCollector.js
+/* author : Ashwinkumar R
+/* 
+/* This file is responsible for the following functionality
+/*      - Runs a timer based scanning task to monitor configured folder
+/*      - handle IPC messages from parent
+/*      - Scan thorugh folders and collect details about the files and magic word
+/*      - Collect changed files from watcher module and update the magic word count
+/*      - Frame and send task run result to parent to insert in DB
+/*
+/*****************************************************************************************************/
+
 const fs = require('fs');
 const fsExtra = require('fs-extra');
 const path = require('path');
@@ -21,6 +34,9 @@ class statCollector {
                 switch (key) {
                     case '-level':
                         this.logLevel = value;
+                        break;
+                    case '-size':
+                        this.maxLogSize = value;
                         break;
                     case '-timer':
                         this.pollTimer = value;
@@ -57,6 +73,7 @@ class statCollector {
 
         let logParams = {
             level : this.logLevel,
+            maxLogSize : parseInt(this.maxLogSize),
             name : childName,
             logFile : LOG_FILE
         }
